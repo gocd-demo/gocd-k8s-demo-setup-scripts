@@ -4,9 +4,7 @@
   ./setup --help
   ```
 
-  The above command will setup a specified number of cluster in GKE. It will also create files `~/.gocd-demo/${CLUSTER_PREFIX}/${INDEX}/kube/config` for each participant in the workshop. Each participant needs to have a copy of one of the files and they should save it under `~/.kube/config` on their computers.
-
-  They should also ensure that they have helm and kubectl installed on their computers. Binaries for all platforms are available on GitHub.
+  The above command will setup a specified number of cluster in GKE. It will also create an SSH "jump box" with usernames `user-1...user-N` pre-configured. The password for each of the users is `123456789`. All participants should login using different usernames to avoid stepping on each other's shoes.
 
 # Tear down the k8s clusters
 
