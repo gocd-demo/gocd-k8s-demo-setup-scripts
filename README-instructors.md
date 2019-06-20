@@ -5,6 +5,8 @@
   ```
 
   The above command will setup a specified number of cluster in GKE. It will also create an SSH "jump box" with usernames `user-1...user-N` pre-configured. The password for each of the users is `123456789`. All participants should login using different usernames to avoid stepping on each other's shoes.
+  
+  At this time (19 Jun, 2019), this script requires installation of the gcloud beta services. 
 
 # Tear down the k8s clusters
 
