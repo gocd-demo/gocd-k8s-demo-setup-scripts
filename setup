@@ -261,6 +261,7 @@ do
   rsync --quiet -azP -e "ssh ${SSH_OPTIONS}" "${KUBECONFIG_DIR}/" "${SSH_USER}@${SSH_IP_ADDRESS}:.kube"
   REMOTE_PORT="$((3023 * $cluster_index))"
   cat bash_login | sed -e "s/@@REMOTE_PORT@@/$REMOTE_PORT/g" -e "s/@@SSH_IP_ADDRESS@@/$SSH_IP_ADDRESS/g" | ${SSH_COMMAND} 'cat > bash_login'
+  cat encrypt-value | sed -e "s/@@REMOTE_PORT@@/$REMOTE_PORT/g" -e "s/@@SSH_IP_ADDRESS@@/$SSH_IP_ADDRESS/g" | ${SSH_COMMAND} 'cat > encrypt-value'
 
   # create a remote user
   REMOTE_USER="user-${cluster_index}"
@@ -276,13 +277,16 @@ do
       # copy over kube config
       sudo rm -rf /home/${REMOTE_USER}/.kube
       sudo mv /home/${SSH_USER}/.kube /home/${REMOTE_USER}/
+      sudo mv /home/${SSH_USER}/encrypt-value /home/${REMOTE_USER}
 
       # create the login message
       cat /home/${SSH_USER}/bash_login | sudo tee -a /home/${REMOTE_USER}/.bashrc > /dev/null
 
+
       # set file system permissions
       sudo chown -R ${REMOTE_USER}:${REMOTE_USER} /home/${REMOTE_USER}/.kube
       sudo chmod 640 /home/${REMOTE_USER}/.kube/config
+      sudo chmod 755 /home/${REMOTE_USER}/encrypt-value
   "
 
   info "Configuring remote k8s cluster with proper roles and helm"

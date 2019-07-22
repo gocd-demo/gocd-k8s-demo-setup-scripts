@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "Type in the secret that you want to encrypt:"
+read -s secret
+
+GO_SERVER_URL="http://$(kubectl get ingress gocd-app-server --namespace=gocd  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+
+curl "${GO_SERVER_URL}/go/api/admin/encrypt" \
+-H 'Accept: application/vnd.go.cd.v1+json' \
+-H 'Content-Type: application/json' \
+-X POST -d "{
+  \"value\": \"${secret}\"
+}"
