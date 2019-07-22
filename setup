@@ -285,12 +285,12 @@ do
       sudo chmod 640 /home/${REMOTE_USER}/.kube/config
   "
 
-  # info "Configuring remote k8s cluster with proper roles and helm"
-  # ${SSH_COMMAND} -tt "
-  #   sudo su - '${REMOTE_USER}' -c 'kubectl create clusterrolebinding clusterRoleBinding --clusterrole=cluster-admin --serviceaccount=kube-system:default'
-  #   sudo su - '${REMOTE_USER}' -c 'helm init --history-max 200'
-  #   sudo su - '${REMOTE_USER}' -c 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml'
-  # "
+  info "Configuring remote k8s cluster with proper roles and helm"
+  ${SSH_COMMAND} -tt "
+    sudo su - '${REMOTE_USER}' -c 'kubectl create clusterrolebinding clusterRoleBinding --clusterrole=cluster-admin --serviceaccount=kube-system:default'
+    sudo su - '${REMOTE_USER}' -c 'helm init --history-max 200'
+    sudo su - '${REMOTE_USER}' -c 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml'
+  "
 done
 
 info "For the instructor to ssh into the instance, execute the following command:"
