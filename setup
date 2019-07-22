@@ -228,7 +228,7 @@ do
   mkdir -p "$(dirname "${KUBECONFIG}")"
 
   # generate a temporary kube config
-  KUBECONFIG=${KUBECONFIG} gcloud container clusters get-credentials "${cluster_name}"
+  KUBECONFIG=${KUBECONFIG} gcloud container clusters get-credentials "${cluster_name}" --zone "us-central1-a"
   gsed -e 's/cmd-path: .*/cmd-path: gcloud/g' "${KUBECONFIG}" -i
 
   # execute a dummy command
@@ -245,7 +245,7 @@ do
 
   # generate a more permanent kube config using a template
   CLUSTER_USER_TOKEN=$(kubectl --kubeconfig="${KUBECONFIG}" describe secrets --namespace=kube-system admin-user | grep '^token: ' | awk '{print $2}')
-  CLUSTER_DESCRIPTION="$(gcloud container clusters describe "${cluster_name}")"
+  CLUSTER_DESCRIPTION="$(gcloud container clusters describe "${cluster_name}" --zone "us-central1-a")"
   CLUSTER_URL="$(echo "${CLUSTER_DESCRIPTION}" | grep -E '^endpoint:' | awk '{print $2}')"
   CLUSTER_NAME="$(echo "${CLUSTER_DESCRIPTION}" | grep -E '^name:' | awk '{print $2}')"
   CLUSTER_CA_CERT="$(echo "${CLUSTER_DESCRIPTION}" | grep -E '^  clusterCaCertificate:' | awk '{print $2}')"
