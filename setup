@@ -172,12 +172,12 @@ gcloud compute \
 info "Spinning up ${_arg_number_of_clusters} clusters. This will take a few minutes..."
 for cluster_index in $(seq 1 "${_arg_number_of_clusters}")
 do
-  cluster_name="${_arg_cluster_name_prefix}-${cluster_index}"
+  cluster_name="${_arg_cluster_name_prefix}-user-${cluster_index}"
   gcloud beta container \
       --project "${_arg_project_name}" clusters create "${cluster_name}" \
       --zone "us-central1-a" \
       --no-enable-basic-auth \
-      --cluster-version "1.13.5-gke.10" \
+      --cluster-version "1.13.7-gke.8" \
       --machine-type "${_arg_machine_type}" \
       --image-type "COS" \
       --disk-type "pd-standard" \
@@ -221,44 +221,76 @@ ${SSH_COMMAND} -tt "sudo sed -e 's/PasswordAuthentication no/PasswordAuthenticat
 info "Creating ${_arg_number_of_clusters} users on ssh host with access to k8s cluster."
 for cluster_index in $(seq 1 "${_arg_number_of_clusters}")
 do
-  # create a remote user
-  REMOTE_USER="user-${cluster_index}"
-  ${SSH_COMMAND} -tt "
-      sudo userdel -r -f ${REMOTE_USER}
-      sudo useradd --create-home ${REMOTE_USER} --shell /bin/bash
-      echo '${REMOTE_USER}:123456789' | sudo chpasswd
-  "
-
   # export the kube config file to local file
-  cluster_name="${_arg_cluster_name_prefix}-${cluster_index}"
-  KUBECONFIG="$(mktemp ./kube-config.XXXXXXX)"
+  cluster_name="${_arg_cluster_name_prefix}-user-${cluster_index}"
+  KUBECONFIG_DIR="${CONFIG_DIR}/${cluster_name}/kube"
+  KUBECONFIG="${KUBECONFIG_DIR}/config"
   mkdir -p "$(dirname "${KUBECONFIG}")"
 
+  # generate a temporary kube config
   KUBECONFIG=${KUBECONFIG} gcloud container clusters get-credentials "${cluster_name}"
-
   sed -e 's/cmd-path: .*/cmd-path: gcloud/g' "${KUBECONFIG}" -i
 
   # execute a dummy command
   kubectl --kubeconfig="${KUBECONFIG}" get nodes
 
+  info "Creating user 'admin-user'"
+  kubectl --kubeconfig="${KUBECONFIG}" apply -f "dashboard-adminuser.yaml"
+
+  info "Getting token for 'admin-user'"
+  kubectl --kubeconfig="${KUBECONFIG}" -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}') > "${KUBECONFIG_DIR}/token"
+
+  info "Applying ClusterRoleBinding for 'admin-user'"
+  kubectl --kubeconfig="${KUBECONFIG}" apply -f "admin-user-cluster-role-binding.yaml"
+
+  # generate a more permanent kube config using a template
+  CLUSTER_USER_TOKEN=$(kubectl --kubeconfig="${KUBECONFIG}" describe secrets --namespace=kube-system admin-user | grep '^token: ' | awk '{print $2}')
+  CLUSTER_DESCRIPTION="$(gcloud container clusters describe "${cluster_name}")"
+  CLUSTER_URL="$(echo "${CLUSTER_DESCRIPTION}" | grep -E '^endpoint:' | awk '{print $2}')"
+  CLUSTER_NAME="$(echo "${CLUSTER_DESCRIPTION}" | grep -E '^name:' | awk '{print $2}')"
+  CLUSTER_CA_CERT="$(echo "${CLUSTER_DESCRIPTION}" | grep -E '^  clusterCaCertificate:' | awk '{print $2}')"
+
+  cat "kube-config.template.yaml" | sed \
+                                          -e "s/@@CLUSTER_URL@@/$CLUSTER_URL/g" \
+                                          -e "s/@@CLUSTER_NAME@@/$CLUSTER_NAME/g" \
+                                          -e "s/@@CLUSTER_CA_CERT@@/$CLUSTER_CA_CERT/g" \
+                                          -e "s/@@CLUSTER_USER_TOKEN@@/$CLUSTER_USER_TOKEN/g" > "${KUBECONFIG}"
+
   # copy over the kube config to remote host
-  scp ${SSH_OPTIONS} "${KUBECONFIG}" "${SSH_USER}@${SSH_IP_ADDRESS}:"
-  ${SSH_COMMAND} -tt "
-        sudo mkdir -p /home/${REMOTE_USER}/.kube
-        sudo chown -R ${REMOTE_USER}:${REMOTE_USER} /home/${REMOTE_USER}/.kube
-        sudo chmod 700 /home/${REMOTE_USER}/.kube
-        sudo mv ${KUBECONFIG} /home/${REMOTE_USER}/.kube/config
-        sudo chmod 644 /home/${REMOTE_USER}/.kube/config
+  info "Copying over kube config to remote host"
+  rsync --quiet -azP -e "ssh ${SSH_OPTIONS}" "${KUBECONFIG_DIR}/" "${SSH_USER}@${SSH_IP_ADDRESS}:.kube"
+  REMOTE_PORT="$((3023 * $cluster_index))"
+  cat bash_login | sed -e "s/@@REMOTE_PORT@@/$REMOTE_PORT/g" -e "s/@@SSH_IP_ADDRESS@@/$SSH_IP_ADDRESS/g" | ${SSH_COMMAND} 'cat > bash_login'
+
+  # create a remote user
+  REMOTE_USER="user-${cluster_index}"
+  ${SSH_COMMAND} -tt -- "
+      set -x
+      # create a remote user and set their password
+      sudo userdel --remove --force ${REMOTE_USER}
+      sudo groupdel ${REMOTE_USER}
+      sudo groupadd --force --gid "$((2000 + $cluster_index))" ${REMOTE_USER}
+      sudo useradd --uid "$((2000 + $cluster_index))" --gid "$((2000 + $cluster_index))" --create-home ${REMOTE_USER} --shell /bin/bash
+      echo '${REMOTE_USER}:123456789' | sudo chpasswd
+
+      # copy over kube config
+      sudo rm -rf /home/${REMOTE_USER}/.kube
+      sudo mv /home/${SSH_USER}/.kube /home/${REMOTE_USER}/
+
+      # create the login message
+      cat /home/${SSH_USER}/bash_login | sudo tee -a /home/${REMOTE_USER}/.bashrc > /dev/null
+
+      # set file system permissions
+      sudo chown -R ${REMOTE_USER}:${REMOTE_USER} /home/${REMOTE_USER}/.kube
+      sudo chmod 640 /home/${REMOTE_USER}/.kube/config
   "
 
-  info "Configuring remote k8s cluster with proper roles and helm"
-  ${SSH_COMMAND} -tt "
-    sudo su - '${REMOTE_USER}' -c 'kubectl create clusterrolebinding clusterRoleBinding --clusterrole=cluster-admin --serviceaccount=kube-system:default'
-    sudo su - '${REMOTE_USER}' -c 'helm init --history-max 200'
-    sudo su - '${REMOTE_USER}' -c 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/aio/deploy/recommended/kubernetes-dashboard.yaml'
-  "
-
-  rm "${KUBECONFIG}"
+  # info "Configuring remote k8s cluster with proper roles and helm"
+  # ${SSH_COMMAND} -tt "
+  #   sudo su - '${REMOTE_USER}' -c 'kubectl create clusterrolebinding clusterRoleBinding --clusterrole=cluster-admin --serviceaccount=kube-system:default'
+  #   sudo su - '${REMOTE_USER}' -c 'helm init --history-max 200'
+  #   sudo su - '${REMOTE_USER}' -c 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml'
+  # "
 done
 
 info "For the instructor to ssh into the instance, execute the following command:"

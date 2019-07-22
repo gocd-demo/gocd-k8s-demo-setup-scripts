@@ -103,6 +103,8 @@ SSH_CONSOLE_INSTANCE_NAME="${_arg_cluster_name_prefix}-ssh-console"
 
 info "Terminating ssh console instance ${SSH_CONSOLE_INSTANCE_NAME}"
 
+# rm -rf "${HOME}/.gocd-demo/${_arg_cluster_name_prefix}"
+
 gcloud --quiet \
   compute --project "${_arg_project_name}" instances delete "${SSH_CONSOLE_INSTANCE_NAME}" \
 	--zone us-central1-a &
@@ -112,7 +114,7 @@ info "Terminating clusters with prefix ${_arg_cluster_name_prefix}. This may tak
 clusters=$(gcloud beta container \
 	--project "${_arg_project_name}" clusters list \
 	--zone us-central1-a \
-	--filter "name:${_arg_cluster_name_prefix}-*" \
+	--filter "name:${_arg_cluster_name_prefix}-user-*" \
 	--format "get(name)" | tr "\n" " ")
 
 gcloud --quiet \

@@ -15,22 +15,23 @@
 
 1. Run the following (on remote machine) command get your API token to login to the k8s dashboard. Copy this key to a file on your local machine, you'll need it to login for step 3.
 
-    ```bash
+    ```shell
     kubectl -n kube-system describe secrets $(kubectl -n kube-system get secrets | grep kubernetes-dashboard-token | awk '{print $1}')
     ```
+
 2. In a separate window on your local machine run the following command (choose a random port for your needs). This will open the kubernetes dashboard on the port specified by `RANDOM_PORT`.
 
     ```bash
     ssh -L ${RANDOM_PORT}:localhost:${RANDOM_PORT} user-${N}@ip.add.re.ss /snap/bin/kubectl proxy -p ${RANDOM_PORT}
     ```
 
-3. Open the dashboard by opening [this link](http://localhost:12344/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/overview?namespace=default). Substitute the port number in the URL.
+3. Open the dashboard by opening [this link](http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/). Substitute the port number in the URL.
 
 
 ## Install GoCD on the k8s cluster
 
 1. Setup GoCD using the helm chart:
 
-    ```
+    ```shell
     helm install --name gocd-app --namespace gocd stable/gocd
     ```
