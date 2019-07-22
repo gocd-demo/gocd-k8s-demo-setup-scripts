@@ -3,8 +3,5 @@ function info() {
 }
 
 info "Your kubernetes token is placed in the file $HOME/.kube/token. You can run 'cat ~/.kube/token' to see the contents of the file."
-info "To open the kubernetes dashboard, run the following command in a new terminal:"
-info "  ssh -L8001:localhost:@@REMOTE_PORT@@ user-1@@@SSH_IP_ADDRESS@@ /snap/bin/kubectl proxy --port @@REMOTE_PORT@@"
-info "Next open the url http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/  "
 
 unset info
