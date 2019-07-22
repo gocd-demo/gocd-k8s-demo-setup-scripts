@@ -119,7 +119,7 @@ clusters=$(gcloud beta container \
 
 gcloud --quiet \
 	beta container \
-	--project "${_arg_project_name}" clusters delete ${clusters} &
+	--project "${_arg_project_name}" clusters delete ${clusters} --zone "us-central1-a" &
 
 wait
 
