@@ -1,0 +1,19 @@
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: @@CLUSTER_CA_CERT@@
+    server: https://@@CLUSTER_URL@@
+  name: @@CLUSTER_NAME@@
+contexts:
+- context:
+    cluster: @@CLUSTER_NAME@@
+    user: admin-user
+  name: svcs-acct-context
+current-context: svcs-acct-context
+kind: Config
+users:
+- name: admin-user
+  user:
+    token: @@CLUSTER_USER_TOKEN@@
+
+
