@@ -229,7 +229,7 @@ do
 
   # generate a temporary kube config
   KUBECONFIG=${KUBECONFIG} gcloud container clusters get-credentials "${cluster_name}"
-  sed -e 's/cmd-path: .*/cmd-path: gcloud/g' "${KUBECONFIG}" -i
+  gsed -e 's/cmd-path: .*/cmd-path: gcloud/g' "${KUBECONFIG}" -i
 
   # execute a dummy command
   kubectl --kubeconfig="${KUBECONFIG}" get nodes
