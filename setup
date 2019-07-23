@@ -281,7 +281,6 @@ do
       sudo mv /home/${SSH_USER}/encrypt-value /home/${REMOTE_USER}
       sudo mv /home/${SSH_USER}/uat.json /home/${REMOTE_USER}
 
-
       # create the login message
       cat /home/${SSH_USER}/bash_login | sudo tee -a /home/${REMOTE_USER}/.bashrc > /dev/null
 
