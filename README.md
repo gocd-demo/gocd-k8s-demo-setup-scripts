@@ -16,5 +16,5 @@
 1. Setup GoCD using the helm chart:
 
     ```shell
-    helm install --name gocd-app --namespace gocd stable/gocd
+    helm install --name gocd --namespace gocd stable/gocd
     ```
