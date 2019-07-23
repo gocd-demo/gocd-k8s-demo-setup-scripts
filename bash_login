@@ -4,6 +4,6 @@ function info() {
 
 info "Your kubernetes token is placed in the file $HOME/.kube/token. You can run 'cat ~/.kube/token' to see the contents of the file."
 info "Now install gocd using the command:"
-info "  helm install --name gocd-app --namespace gocd stable/gocd"
+info "  helm install --name gocd --namespace gocd stable/gocd"
 
 unset info
