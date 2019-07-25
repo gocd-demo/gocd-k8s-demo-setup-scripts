@@ -103,7 +103,7 @@ SSH_CONSOLE_INSTANCE_NAME="${_arg_cluster_name_prefix}-ssh-console"
 
 info "Terminating ssh console instance ${SSH_CONSOLE_INSTANCE_NAME}"
 
-# rm -rf "${HOME}/.gocd-demo/${_arg_cluster_name_prefix}"
+rm -rf "${HOME}/.gocd-demo/${_arg_cluster_name_prefix}"
 
 gcloud --quiet \
   compute --project "${_arg_project_name}" instances delete "${SSH_CONSOLE_INSTANCE_NAME}" \
